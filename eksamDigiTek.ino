@@ -22,7 +22,7 @@
 #include <Encoder.h>
 
 #define ANALOG_SAMPLE_INTERVAL 10
-#define ANALOG_SAMPLE_COUNT 10
+#define ANALOG_SAMPLE_COUNT 10  
 
 #define VRX_PIN  A0 // Arduino pin connected to VRX pin
 #define VRY_PIN  A1 // Arduino pin connected to VRY pin
@@ -34,6 +34,14 @@ bool mouse = false;
 int xValue = 0; // To store value of the X axis
 int yValue = 0; // To store value of the Y axis
 int coordinates[2];
+
+const int buttonPin = 10;  // the number of the pushbutton pin
+bool up = true;
+const int buttonPin1 = 12;  // the number of the pushbutton pin
+bool up1 = true;
+
+String buttonFarve = "";
+int lengthFarve = 0;
 
 unsigned int samples[ANALOG_SAMPLE_COUNT];
 unsigned long lastSampleTime;
@@ -48,7 +56,7 @@ WiFiConnectionHandler conMan("DigitalTeknik24", "DigiTek24");
 IPAddress ip(10, 138, 102, 76);
 
 //destination IP (use the IP of the computer you have your OSC Server running)
-IPAddress outIp(192, 168, 50, 107);
+IPAddress outIp(192, 168, 50, 106);
 // IPAddress outIp(10,138,102,211);
 const unsigned int outPort = 11000;
 
@@ -67,11 +75,32 @@ void setup() {
   conMan.addCallback(NetworkConnectionEvent::DISCONNECTED, onNetworkDisconnect);
   fillSampleBuffer(0);
   lastSampleTime = millis();
+  pinMode(buttonPin, INPUT);
+  pinMode(buttonPin1, INPUT);
 }
 
 void loop() {
   // Handle OSC messages
   handleOSC();
+
+  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+    if (digitalRead(buttonPin1) == HIGH && up1) {
+      up1 = false;
+      buttonFarve += "1";
+      lengthFarve += 1;
+    } else if(digitalRead(buttonPin1) == LOW){
+      up1 = true;
+    }
+
+  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+    if (digitalRead(buttonPin) == HIGH && up) {
+      up = false;
+      buttonFarve += "0";
+      lengthFarve += 1;
+    } else if(digitalRead(buttonPin) == LOW){
+      up = true;
+    }
+    delay(50);
 
 
   long newPosition = myEnc.read();
@@ -116,7 +145,7 @@ void loop() {
     msg.empty(); // free space occupied by message
   }
   
-    //the message wants an OSC address as first argument
+  // the message wants an OSC address as first argument
   if (wifiIsConnected) {
     OSCMessage msg("/encoder");
 
@@ -128,6 +157,22 @@ void loop() {
     Udp.endPacket(); // mark the end of the OSC Packet
     msg.empty(); // free space occupied by message
   }
+
+  if (wifiIsConnected && lengthFarve == 5) {
+    int buttonFarveInt = buttonFarve.toInt(); 
+    OSCMessage msg("/farve");
+
+    msg.add((int32_t)buttonFarveInt);
+
+    // Serial.print("/encoder");
+    Udp.beginPacket(outIp, outPort);
+    msg.send(Udp); // send the bytes to the SLIP stream
+    Udp.endPacket(); // mark the end of the OSC Packet
+    msg.empty(); // free space occupied by message
+    lengthFarve = 0;
+    buttonFarve = "";
+  }
+
 }
 
 void handleOSC() {
