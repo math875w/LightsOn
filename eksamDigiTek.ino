@@ -20,14 +20,16 @@
 #include <WiFiUdp.h>
 #include <Arduino_ConnectionHandler.h>
 #include <Encoder.h>
+#include <Keypad.h>
 
 #define ANALOG_SAMPLE_INTERVAL 10
-#define ANALOG_SAMPLE_COUNT 10  
+#define ANALOG_SAMPLE_COUNT 10
 
 #define VRX_PIN  A0 // Arduino pin connected to VRX pin
 #define VRY_PIN  A1 // Arduino pin connected to VRY pin
+#define relay_PIN 18
 
-Encoder myEnc(5, 6);
+Encoder myEnc(9, 10);
 long oldPosition  = -999;
 
 bool mouse = false;
@@ -35,20 +37,43 @@ int xValue = 0; // To store value of the X axis
 int yValue = 0; // To store value of the Y axis
 int coordinates[2];
 
-const int buttonPin = 10;  // the number of the pushbutton pin
+const int buttonPin = 11;  // the number of the pushbutton pin
 bool up = true;
 const int buttonPin1 = 12;  // the number of the pushbutton pin
 bool up1 = true;
 
+bool doorOpen = false;
+bool encoder = false;
+
 String buttonFarve = "";
 int lengthFarve = 0;
+
+String keypadNum = "";
+int keypadLen = 0;
+
+const byte ROWS = 4;
+const byte COLS = 3;
+
+char hexaKeys[ROWS][COLS] = {
+  {'1', '2', '3'},
+  {'4', '5', '6'},
+  {'7', '8', '9'},
+  {'*', '0', '#'}
+};
+
+byte rowPins[ROWS] = {3, 8, 7,5}; 
+byte colPins[COLS] = {4, 2, 6};
+
+//initialize an instance of class NewKeypad
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 
 unsigned int samples[ANALOG_SAMPLE_COUNT];
 unsigned long lastSampleTime;
 unsigned short sampleIndex = 0;
 
 WiFiUDP Udp;
-WiFiConnectionHandler conMan("DigitalTeknik24", "DigiTek24");
+WiFiConnectionHandler conMan("larsen_ext", "samitho3");
+// WiFiConnectionHandler conMan("DigitalTeknik24", "DigiTek24");
 // WiFiConnectionHandler conMan("Eucnvs-Guest", "");
 
 //the Arduino board's IP (choose one which is on your network's pool and not reserved)
@@ -77,31 +102,49 @@ void setup() {
   lastSampleTime = millis();
   pinMode(buttonPin, INPUT);
   pinMode(buttonPin1, INPUT);
+  pinMode(relay_PIN, OUTPUT);
 }
 
 void loop() {
+  digitalWrite(relay_PIN, LOW);
   // Handle OSC messages
   handleOSC();
+
+  // creating the string for keypad code
+  char customKey = customKeypad.getKey();
+  if (customKey){
+    keypadNum += customKey;
+    keypadLen += 1;
+  }
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
     if (digitalRead(buttonPin1) == HIGH && up1) {
       up1 = false;
       buttonFarve += "1";
       lengthFarve += 1;
+
     } else if(digitalRead(buttonPin1) == LOW){
       up1 = true;
     }
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
     if (digitalRead(buttonPin) == HIGH && up) {
-      up = false;
+      up = false;  
       buttonFarve += "0";
       lengthFarve += 1;
+      doorOpen = true;
+      Serial.println("door open");
     } else if(digitalRead(buttonPin) == LOW){
       up = true;
     }
     delay(50);
 
+    if(doorOpen == true){
+      digitalWrite(relay_PIN, HIGH);
+      delay(700);
+      digitalWrite(relay_PIN, LOW );
+      doorOpen = false;
+    }
 
   long newPosition = myEnc.read();
   if (newPosition != oldPosition) {
@@ -146,7 +189,7 @@ void loop() {
   }
   
   // the message wants an OSC address as first argument
-  if (wifiIsConnected) {
+  if (wifiIsConnected && encoder == true) {
     OSCMessage msg("/encoder");
 
     msg.add((int32_t)newPosition);
@@ -172,6 +215,22 @@ void loop() {
     lengthFarve = 0;
     buttonFarve = "";
   }
+
+  if (wifiIsConnected && keypadLen == 6) {
+    int keypadNumInt = keypadNum.toInt(); 
+    OSCMessage msg("/passcode");
+
+    msg.add((int32_t)keypadNumInt);
+
+    // Serial.print("/encoder");
+    Udp.beginPacket(outIp, outPort);
+    msg.send(Udp); // send the bytes to the SLIP stream
+    Udp.endPacket(); // mark the end of the OSC Packet
+    msg.empty(); // free space occupied by message
+    keypadNum = "";
+    keypadLen = 0;
+  }
+   
 
 }
 
@@ -203,6 +262,17 @@ void handleOSCMessage(OSCMessage &msg) {
     mouse = true;
     Serial.println("Mouse unlocked");
   }
+
+  if (stringOne == "/encoder") {
+    // Set the mouse variable to true
+    encoder = true;
+    Serial.println("encoder unlocked");
+  }
+  // if (stringOne == "/opendoor") {
+  // // Set the mouse variable to true
+  //   doorOpen = true;
+  //   Serial.println("Door opened");
+  // }
 }
 
 
