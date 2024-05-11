@@ -21,6 +21,32 @@
 #include <Arduino_ConnectionHandler.h>
 #include <Encoder.h>
 #include <Keypad.h>
+#include <FastLED_NeoPixel.h>
+
+/* 
+PINOUT
+2- keypad kolonne 2 
+3- keypad række 1
+4- keypad kolonne 1 
+5- keypad række 4 
+6- keypad kolonne 3 
+7- keypad række 3 
+8- keypad række 2 
+9- Encoder DT
+10- Encoder CLK
+11- Knap1 (grøn knap)
+12- knap2 (gul knap)
+13-
+14/A0- JoyStick x-koordinat Analog 
+15/A1- JoyStick y-koordinat Analog 
+16/A2-
+17/A3-
+18/A4- relæ trigger 
+19/A5-
+20/A6- LED-Strip PIN
+21/A7-
+*/
+
 
 #define ANALOG_SAMPLE_INTERVAL 10
 #define ANALOG_SAMPLE_COUNT 10
@@ -28,6 +54,16 @@
 #define VRX_PIN  A0 // Arduino pin connected to VRX pin
 #define VRY_PIN  A1 // Arduino pin connected to VRY pin
 #define relay_PIN 18
+
+// Which pin on the Arduino is connected to the LEDs?
+#define DATA_PIN 20
+// How many LEDs are attached to the Arduino?
+#define MAX_NUM_LEDS 6  // Maximum number of LEDs
+// LED brightness, 0 (min) to 255 (max)
+#define BRIGHTNESS 50
+
+int numLEDs = 0;        // Initial number of LEDs to light up
+FastLED_NeoPixel<MAX_NUM_LEDS, DATA_PIN, NEO_GRB> strip; // NeoPixel strip object
 
 Encoder myEnc(9, 10);
 long oldPosition  = -999;
@@ -61,7 +97,7 @@ char hexaKeys[ROWS][COLS] = {
   {'*', '0', '#'}
 };
 
-byte rowPins[ROWS] = {3, 8, 7,5}; 
+byte rowPins[ROWS] = {3, 8, 7, 5}; 
 byte colPins[COLS] = {4, 2, 6};
 
 //initialize an instance of class NewKeypad
@@ -103,6 +139,10 @@ void setup() {
   pinMode(buttonPin, INPUT);
   pinMode(buttonPin1, INPUT);
   pinMode(relay_PIN, OUTPUT);
+  strip.begin(); // Initialize strip
+  strip.setBrightness(BRIGHTNESS);
+  strip.clear();
+  strip.show();
 }
 
 void loop() {
@@ -122,9 +162,15 @@ void loop() {
       up1 = false;
       buttonFarve += "1";
       lengthFarve += 1;
-
+      strip.setPixelColor(numLEDs, strip.Color(0, 255, 0));
+      strip.show();
+      numLEDs++;
     } else if(digitalRead(buttonPin1) == LOW){
       up1 = true;
+    }
+
+    if (numLEDs >= MAX_NUM_LEDS){
+      numLEDs = 6;
     }
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
@@ -141,7 +187,7 @@ void loop() {
 
     if(doorOpen == true){
       digitalWrite(relay_PIN, HIGH);
-      delay(700);
+      delay(7000);
       digitalWrite(relay_PIN, LOW );
       doorOpen = false;
     }
