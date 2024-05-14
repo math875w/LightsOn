@@ -71,7 +71,7 @@ int numLEDs = 0;        //antaller af LED'er der skal lyse
 int first = true;
 FastLED_NeoPixel<MAX_NUM_LEDS, DATA_PIN, NEO_GRB> strip; //NeoPixel strip object
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // Initialization for the used OLED display
+  U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // Initialization for the used OLED display
 unsigned long startTime;
 const unsigned long duration = 900000; // 600 seconds (10 minutes) in milliseconds
 bool game = true;
@@ -161,14 +161,11 @@ void setup() {
 }
 
 void loop() {
-  // strip.setPixelColor(numLEDs, strip.Color(0, 0, 255)); //sætter numLEDs til farven grøn
-  // strip.show();
-  // numLEDs++;
   // Handle OSC messages
   handleOSC();
-  
 
-  // if(game == true){
+
+  if(game){
     digitalWrite(relay_PIN, LOW);
     // første gang koden kører
     if(first == true){
@@ -179,7 +176,7 @@ void loop() {
       strip.show();
       delay(10000);
       first = false;
-    }
+    } 
     
     u8g2.clearBuffer();
 
@@ -379,17 +376,17 @@ void loop() {
       // game = false;
     }
 
-  // } else {
-  //     strip.setPixelColor(0, strip.Color(255, 0, 0));
-  //     strip.setPixelColor(1, strip.Color(255, 0, 0));
-  //     strip.setPixelColor(2, strip.Color(255, 0, 0));
-  //     strip.setPixelColor(3, strip.Color(255, 0, 0));
-  //     strip.setPixelColor(4, strip.Color(255, 0, 0));
-  //     strip.setPixelColor(5, strip.Color(255, 0, 0));
-  //     strip.show();
-  //     // Display a message or perform an action when timer expires
-  //     u8g2.clearBuffer(); // Clear the screen buffer
-  // }
+  } else {
+      strip.setPixelColor(0, strip.Color(255, 0, 0));
+      strip.setPixelColor(1, strip.Color(255, 0, 0));
+      strip.setPixelColor(2, strip.Color(255, 0, 0));
+      strip.setPixelColor(3, strip.Color(255, 0, 0));
+      strip.setPixelColor(4, strip.Color(255, 0, 0));
+      strip.setPixelColor(5, strip.Color(255, 0, 0));
+      strip.show();
+      // Display a message or perform an action when timer expires
+      u8g2.clearBuffer(); // Clear the screen buffer
+  }
   
 }
 
