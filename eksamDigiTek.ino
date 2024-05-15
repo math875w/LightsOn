@@ -1,5 +1,7 @@
-/* 
-BEKRIVELSE AF KODEN
+/*
+Denne Arduino-kode styrer et spil ved hjælp af knapper, joystick, OLED-display, LED-strip, encoder, relæ og en keypad. 
+Koden sætter hardwaren op og styrer spillets logik. 
+Den modtager og sender OSC-beskeder til at håndtere spillets opgaver og opdaterer displayet og LED-strippen baseret på spillerens handlinger. 
 */
 
 //bibloteker
