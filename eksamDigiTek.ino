@@ -1,19 +1,8 @@
-/* This Sketch is tested on 
- * - Nano 33 RP2040 Connect
- * - Nano 33 IoT
- * - MKR WiFi 1010
- 
- To compile and use it requires
- 
- Libraries:
- - CNMAT OSC Library (https://github.com/CNMAT/OSC) - Arduino Library Manager
- - Arduino WiFiNINA (https://github.com/arduino-libraries/WiFiNINA) - Arduino Library Manager
- - Arduino_ConnectionHandler (https://github.com/arduino-libraries/Arduino_ConnectionHandler) - Arduino Library Manager
- 
- OSC Server:
- A Max/MSP patch is provided as a comment at the bottom of this Sketch
+/* 
+BEKRIVELSE AF KODEN
 */
 
+//bibloteker
 #include <OSCMessage.h>
 #include <OSCBundle.h>
 #include <WiFiNINA.h>
@@ -139,6 +128,7 @@ byte mac[] = {
 };
 
 bool wifiIsConnected = false;
+//funktion som bliver kørt en gang i starten
 void setup() {
   pinMode(buttonPin, INPUT);
   pinMode(buttonPin1, INPUT);
@@ -156,28 +146,28 @@ void setup() {
   fillSampleBuffer(0);
   lastSampleTime = millis();
 
-  strip.begin(); // Initialize strip
+  strip.begin();
   strip.setBrightness(BRIGHTNESS);
 }
 
 void loop() {
-  // Handle OSC messages
+  // Håndterer OSC beskeder
   handleOSC();
 
-
+  //tjekker om game er igang
   if(game){
     digitalWrite(relay_PIN, LOW);
     // første gang koden kører
     if(first == true){
-      strip.setPixelColor(0, strip.Color(0, 0, 255)); //sætter numLEDs til farven grøn
+      strip.setPixelColor(0, strip.Color(0, 0, 255));
       strip.show();
       delay(50);
-      strip.setPixelColor(0, strip.Color(0, 0, 0)); //sætter numLEDs til farven grøn
+      strip.setPixelColor(0, strip.Color(0, 0, 0));
       strip.show();
       delay(10000);
       first = false;
     } 
-    
+
     u8g2.clearBuffer();
 
     // udregner tiden der er gået
@@ -191,16 +181,17 @@ void loop() {
     unsigned int seconds = (remainingTime % 60000) / 1000;
     unsigned int milliseconds = remainingTime % 1000;
 
+    //viser tid på skærm
     char timeStr[10];
     sprintf(timeStr, "%02d:%02d.%03d", minutes, seconds, milliseconds);
     u8g2.setFont(u8g2_font_fub11_tn);
     u8g2.drawStr(5, 64, timeStr); // Viser tiden der er tilbage
+    //viser tallet 238 hvis spillerne er nået den opgave
     if(kode){
       u8g2.setFont(u8g2_font_logisoso34_tn);
       u8g2.drawStr(35, 35, "238");
     }
-    u8g2.sendBuffer(); // Display the buffer on the OLED screen
-    // delay(10); // Adjust delay as needed (e.g., 10 ms) to control OLED refresh rate
+    u8g2.sendBuffer();
 
 
     //Laver string for keypadkoden
@@ -213,8 +204,8 @@ void loop() {
     //tjekker om Knap1 er klikker og up er sand
     if (digitalRead(buttonPin) == HIGH && up && farve) {
       up = false;
-      buttonFarve += "0"; //tilfæjer 0 til buttonFarve string
-      lengthFarve ++; //plusser lengthFarve med 1
+      buttonFarve += "0";
+      lengthFarve ++;
     } else if(digitalRead(buttonPin) == LOW && up == false){
       up = true;
     }
@@ -222,8 +213,8 @@ void loop() {
     //tjekker om Knap2 er klikker og up1 er sand
     if (digitalRead(buttonPin1) == HIGH && up1 && farve) {
       up1 = false;
-      buttonFarve += "1"; //tilfæjer 1 til buttonFarve string
-      lengthFarve++; //plusser lengthFarve med 1
+      buttonFarve += "1";
+      lengthFarve++;
     } else if(digitalRead(buttonPin1) == LOW && up1 == false){
       up1 = true;
     }
@@ -244,14 +235,14 @@ void loop() {
       numLEDs = 6;
     }
 
-      // åbner relæet så brugeren kan åbne døren
-      if(doorOpen == true){
-        Serial.println("door open");
-        digitalWrite(relay_PIN, HIGH);
-        delay(7000);
-        digitalWrite(relay_PIN, LOW);
-        doorOpen = false;
-      }
+    // åbner relæet så brugeren kan åbne døren
+    if(doorOpen == true){
+      Serial.println("door open");
+      digitalWrite(relay_PIN, HIGH);
+      delay(7000);
+      digitalWrite(relay_PIN, LOW);
+      doorOpen = false;
+    }
 
     // printer encoder væærdi
     long newPosition = myEnc.read();
@@ -274,8 +265,8 @@ void loop() {
       if(sampleIndex == ANALOG_SAMPLE_COUNT) sampleIndex = 0;
     }
     unsigned int potValue = getAverageSample();
-    // Serial.println(potValue);
-    //the message wants an OSC address as first argument
+ 
+    //tjekker om mus er blevet aktiveret
     if (wifiIsConnected && mouse) {
       OSCMessage msg("/joystick");
       for (int i = 0; i < 2; i++) {
@@ -283,12 +274,12 @@ void loop() {
       }
 
       Udp.beginPacket(outIp, outPort);
-      msg.send(Udp); // send the bytes to the SLIP stream
-      Udp.endPacket(); // mark the end of the OSC Packet
-      msg.empty(); // free space occupied by message
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
     }
     
-    // the message wants an OSC address as first argument
+   //tjekker om encoder er blevet aktiveret
     if (wifiIsConnected && encoder) {
       OSCMessage msg("/encoder");
       Serial.println(newPosition);
@@ -296,45 +287,47 @@ void loop() {
       msg.add((int32_t)newPosition);
 
       Udp.beginPacket(outIp, outPort);
-      msg.send(Udp); // send the bytes to the SLIP stream
-      Udp.endPacket(); // mark the end of the OSC Packet
-      msg.empty(); // free space occupied by message
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
     }
 
-    // the message wants an OSC address as first argument
+   //tjekker om lys er blevet aktiveret
     if (wifiIsConnected && lys) {
       OSCMessage msg("/lys");
 
       msg.add((int32_t)lys);
 
       Udp.beginPacket(outIp, outPort);
-      msg.send(Udp); // send the bytes to the SLIP stream
-      Udp.endPacket(); // mark the end of the OSC Packet
-      msg.empty(); // free space occupied by message
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
       Serial.print(lys);
       lys = false;
     }
 
+    //tjekker om der er sket en fejl og der er kommet en længde på over 5 og derefter clear den
     if(lengthFarve > 5){
       lengthFarve = 0;
       buttonFarve = "";
     }
 
+    //tjekker om der er blevet klikket på den guld og/eller grønne knap 5 gange
     if (wifiIsConnected && lengthFarve == 5) {
-      // Serial.print(buttonFarve);
       int buttonFarveInt = buttonFarve.toInt();
       OSCMessage msg("/farve");
 
       msg.add((int32_t)buttonFarveInt);
 
       Udp.beginPacket(outIp, outPort);
-      msg.send(Udp); // send the bytes to the SLIP stream
-      Udp.endPacket(); // mark the end of the OSC Packet
-      msg.empty(); // free space occupied by message
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
       lengthFarve = 0;
       buttonFarve = "";
     }
 
+    //tjekker om der er blevet klikket på keypad 6 gange
     if (wifiIsConnected && keypadLen == 6) {
       int keypadNumInt = keypadNum.toInt(); 
       OSCMessage msg("/passcode");
@@ -342,41 +335,44 @@ void loop() {
       msg.add((int32_t)keypadNumInt);
 
       Udp.beginPacket(outIp, outPort);
-      msg.send(Udp); // send the bytes to the SLIP stream
-      Udp.endPacket(); // mark the end of the OSC Packet
-      msg.empty(); // free space occupied by message
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
       keypadNum = "";
       keypadLen = 0;
     }
-
+    //tjekker om lys-knapen bliver holdt inde
     if (wifiIsConnected && knapPressed) {
       OSCMessage msg("/knapPressed");
 
       msg.add((int32_t)knapPressed);
 
       Udp.beginPacket(outIp, outPort);
-      msg.send(Udp); // send the bytes to the SLIP stream
-      Udp.endPacket(); // mark the end of the OSC Packet
-      msg.empty(); // free space occupied by message
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
+    }
+    
+    //tjekker om spillet er slut
+    if (wifiIsConnected && !game) {
+      OSCMessage msg("/gameover");
+
+      msg.add((int32_t)game);
+
+      Udp.beginPacket(outIp, outPort);
+      msg.send(Udp);
+      Udp.endPacket();
+      msg.empty();
     }
 
-    // if (wifiIsConnected && !game) {
-    //   OSCMessage msg("/gameover");
-
-    //   msg.add((int32_t)game);
-
-    //   Udp.beginPacket(outIp, outPort);
-    //   msg.send(Udp); // send the bytes to the SLIP stream
-    //   Udp.endPacket(); // mark the end of the OSC Packet
-    //   msg.empty(); // free space occupied by message
-    // }
-
+    //tjekker om tiden er løbet ud
     if (remainingTime > duration) {
       remainingTime = 0;
-      // game = false;
+      game = false;
     }
 
-  } else {
+  } else { //hvis spiller er done 
+      // laver LED-strip til rød og clear skærmen
       strip.setPixelColor(0, strip.Color(255, 0, 0));
       strip.setPixelColor(1, strip.Color(255, 0, 0));
       strip.setPixelColor(2, strip.Color(255, 0, 0));
@@ -384,8 +380,7 @@ void loop() {
       strip.setPixelColor(4, strip.Color(255, 0, 0));
       strip.setPixelColor(5, strip.Color(255, 0, 0));
       strip.show();
-      // Display a message or perform an action when timer expires
-      u8g2.clearBuffer(); // Clear the screen buffer
+      u8g2.clearBuffer();
   }
   
 }
@@ -411,50 +406,49 @@ void handleOSCMessage(OSCMessage &msg) {
   Serial.println("Address: ");
   Serial.println(msg.getAddress());
   String stringOne = msg.getAddress();  
-  // Check if the OSC message address is "/unlock"
+
+  /*
+  Tjekker hvilken OSC-besked den har modtaget og 
+  går vidre til næste opgave. 
+  Samt aktiverer lys på LED-Strip så spilleren kan se når de er 
+  færdige med den nuværende opgave
+  */
   if (stringOne == "/joystickUnlock") {
-    // Set the mouse variable to true
     mouse = true;
   }
 
   if (stringOne == "/knapUnlock") {
-    // Set the mouse variable to true
     farve = true;
     mouse = false;
-    strip.setPixelColor(0, strip.Color(0, 0, 255)); //sætter numLEDs til farven grøn
+    strip.setPixelColor(0, strip.Color(0, 0, 255));
     strip.show();
   }
 
   if (stringOne == "/displayUnlock") {
     kode = true;
     farve = false;
-    strip.setPixelColor(1, strip.Color(0, 0, 255)); //sætter numLEDs til farven grøn
+    strip.setPixelColor(1, strip.Color(0, 0, 255));
     strip.show();
   }
 
-
   if (stringOne == "/encoderUnlock") {
-    // Set the encoder variable to true
     encoder = true;
     kode = false;
-    strip.setPixelColor(2, strip.Color(0, 0, 255)); //sætter numLEDs til farven grøn
+    strip.setPixelColor(2, strip.Color(0, 0, 255)); 
     strip.show();
   }
 
   if (stringOne == "/doorOpen") {
-  // Set the doorOpen variable to true
     doorOpen = true;
     encoder = false;
     knapListener = true;
-    strip.setPixelColor(3, strip.Color(0, 0, 255)); //sætter numLEDs til farven grøn
+    strip.setPixelColor(3, strip.Color(0, 0, 255));
     strip.show();
   }
 
-  // if(stringOne == "/gameDone"){
-  //   game = false;
-  // }
-
-  
+  if(stringOne == "/gameDone"){
+    game = false;
+  }
 }
 
 void handleAnalogMessage(OSCMessage &msg, int addrOffset) {
